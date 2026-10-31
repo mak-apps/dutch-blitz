@@ -2,6 +2,18 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Blitz Scores">
 <title>Dutch Blitz Scorekeeper</title>
+.history table {
+  width: 100%;
+  table-layout: fixed;
+}
+.history th,
+.history td {
+  text-align: center;
+}
+.history th:first-child,
+.history td:first-child {
+  text-align: left;
+}  
 <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172b38;background:#f3f7f5}*{box-sizing:border-box}
 body{margin:0;padding:18px 14px 55px;max-width:850px;margin-inline:auto}h1{font-size:clamp(27px,5vw,39px);margin:8px 0 2px;color:#135c60}h2{font-size:20px;margin:0 0 14px}
