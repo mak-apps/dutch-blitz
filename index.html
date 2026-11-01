@@ -39,7 +39,7 @@ button.step:active{background:#d6e9e8}
 .past-game summary{cursor:pointer;font-size:17px}
 .past-score{text-align:right;font-size:20px;font-weight:800}
 #confetti{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:999}
-#confetti i{position:absolute;top:-20px;width:10px;height:17px;opacity:0;animation:fall 2.7s linear forwards}
+#confetti i{position:absolute;top:-20px;width:12px;height:20px;opacity:0;animation:fall 2.7s linear forwards}
 @keyframes fall{0%{transform:translateY(-5vh) rotate(0);opacity:1}90%{opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 @media(prefers-reduced-motion:reduce){#confetti{display:none}}
 small{color:#63747a}.footer{text-align:center;margin-top:22px}
@@ -50,14 +50,13 @@ small{color:#63747a}.footer{text-align:center;margin-top:22px}
 <section class="card"><h2 id="roundTitle">Round 1</h2><p class="muted">Enter Dutch pile cards (+1 each) and Blitz pile cards left (−2 each).</p><div id="entries"></div><div class="actions"><button id="saveBtn" onclick="saveRound()">Save round & update scores</button></div></section>
 <section class="card"><h2>🏆 Leaderboard</h2><div id="winnerBanner" class="winner-banner" hidden></div><div class="actions"><button id="finishBtn" onclick="finishGame()">🏆 Finish game & celebrate</button></div><div id="leaderboard"></div></section>
 <section class="card"><h2>Past games</h2><div id="pastGames"></div></section>
-<section class="card"><h2>Round history</h2><div class="history" id="history"></div><div class="actions"><button class="secondary" onclick="editLast()">↶ Edit last round</button><button class="secondary" onclick="exportScores()">Export scores</button><button class="danger" onclick="newGame()">New game</button></div></section>
+<section class="card"><h2>Round history</h2><div class="history" id="history"></div><div class="actions"><button class="secondary" onclick="editLast()" id="editBtn">↶ Edit last round</button><button class="secondary" onclick="exportScores()">Export scores</button><button class="danger" onclick="newGame()">New game</button></div></section>
 <p class="footer"><small>Scoring: Dutch cards − (2 × Blitz cards left). Scores can be negative.</small></p>
 <script>
 const KEY='dutch-blitz-scorekeeper-v1';
 let state={players:[],rounds:[],pastGames:[]},draft={};
 try{let s=localStorage.getItem(KEY);if(s)state=JSON.parse(s)}catch(e){}
-state.pastGames=Array.isArray(state.pastGames)?state.pastGames:[];
-state.finished=!!state.finished;
+state.pastGames=Array.isArray(state.pastGames)?state.pastGames:[];state.gameFinished=Boolean(state.gameFinished);state.winners=Array.isArray(state.winners)?state.winners:[];
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function addPlayer(){const inp=document.getElementById('addName'),name=inp.value.trim();if(!name)return;
@@ -69,32 +68,25 @@ function getDraft(){document.querySelectorAll('.entry').forEach(el=>{const id=el
 function score(d,b){return Number(d)-2*Number(b)}
 function changeCount(id,kind,delta){const e=[...document.querySelectorAll('.entry')].find(el=>el.dataset.id===id);if(!e)return;const input=e.querySelector('.'+kind);input.value=Math.max(0,(parseInt(input.value,10)||0)+delta);updatePreview(id)}
 function updatePreview(id){const e=[...document.querySelectorAll('.entry')].find(el=>el.dataset.id===id);if(!e)return;const d=e.querySelector('.d').value,b=e.querySelector('.b').value;e.querySelector('.points').textContent=d!==''&&b!==''?`${score(d,b)>0?'+':''}${score(d,b)} points`:'Enter both numbers'}
-function saveRound(){if(state.finished)return alert("Start a new game to enter more rounds.");getDraft();if(state.players.length<2)return alert('Please add at least two players.');
+function saveRound(){if(state.gameFinished)return alert('This game is finished. Start a new game to play again.');getDraft();if(state.players.length<2)return alert('Please add at least two players.');
 const results={};for(const p of state.players){let x=draft[p.id]||{};if(x.d===''||x.b===''||x.d===undefined||x.b===undefined||!Number.isInteger(Number(x.d))||!Number.isInteger(Number(x.b))||Number(x.d)<0||Number(x.b)<0)return alert('Please enter non-negative whole numbers for every player.');results[p.id]={d:Number(x.d),b:Number(x.b)}}
-state.rounds.push(results);draft={};persist();render();document.getElementById('roundTitle').scrollIntoView({behavior:'smooth',block:'start'})}
-function editLast(){if(state.finished)return alert("This game is already finished. Start a new game to continue.");if(!state.rounds.length)return alert('No rounds to edit yet.');if(!confirm('Move the last round back into the entry form so you can correct it?'))return;const r=state.rounds.pop();draft={};for(const p of state.players)draft[p.id]={d:String(r[p.id]?.d??''),b:String(r[p.id]?.b??'')};persist();render()}
+state.rounds.push(results);draft={};const totals=totalsNow();if(totals.length&&totals[0].total>=75){completeGame(totals);render();celebrate();document.getElementById('winnerBanner').scrollIntoView({behavior:'smooth',block:'center'});}else{persist();render();document.getElementById('roundTitle').scrollIntoView({behavior:'smooth',block:'start'})}}
+function editLast(){if(state.gameFinished)return alert('This game is finished and saved.');if(!state.rounds.length)return alert('No rounds to edit yet.');if(!confirm('Move the last round back into the entry form so you can correct it?'))return;const r=state.rounds.pop();draft={};for(const p of state.players)draft[p.id]={d:String(r[p.id]?.d??''),b:String(r[p.id]?.b??'')};persist();render()}
 function totalsNow(){return state.players.map(p=>({name:p.name,id:p.id,total:state.rounds.reduce((n,r)=>n+score(r[p.id].d,r[p.id].b),0)})).sort((a,b)=>b.total-a.total)}
 function celebrate(){const layer=document.getElementById('confetti');layer.innerHTML='';for(let i=0;i<85;i++){const bit=document.createElement('i');bit.style.left=Math.random()*100+'%';bit.style.background=['#f4bf43','#4a9eaa','#f18da4','#9b83d3','#75b877'][i%5];bit.style.animationDelay=Math.random()*.65+'s';bit.style.animationDuration=(2+Math.random()*1.8)+'s';layer.appendChild(bit)}setTimeout(()=>layer.innerHTML='',4600)}
-function finishGame(){if(state.finished)return alert("This game has already been saved.");if(!state.rounds.length)return alert('Save at least one round before finishing the game.');
-if(!confirm('Finish this game and save the final scores to Past Games?'))return;
-const totals=totalsNow(),best=totals[0].total,winners=totals.filter(x=>x.total===best).map(x=>x.name);
-state.finished=true;state.pastGames.unshift({date:new Date().toISOString(),scores:totals.map(({name,total})=>({name,total})),winners});
-persist();render();document.getElementById('winnerBanner').textContent='🏆 '+winners.join(' & ')+(winners.length>1?' tie for the win!':' wins!');document.getElementById('winnerBanner').hidden=false;celebrate();
-document.getElementById('finishBtn').disabled=true;
-}
-function newGame(){if(!confirm('Start a new game? All scores and round history will be cleared.'))return;
-const keep=confirm('Keep the same players for the new game?\n\nOK = keep players\nCancel = clear players too');state.rounds=[];state.finished=false;if(!keep)state.players=[];draft={};persist();document.getElementById('winnerBanner').hidden=true;render()}
+function completeGame(totals){if(state.gameFinished)return;const best=totals[0].total,winners=totals.filter(x=>x.total===best).map(x=>x.name);state.pastGames.unshift({date:new Date().toISOString(),scores:totals.map(({name,total})=>({name,total})),winners});state.gameFinished=true;state.winners=winners;persist()}
+function finishGame(){if(state.gameFinished)return alert('This game has already been saved.');if(!state.rounds.length)return alert('Save at least one round first.');if(!confirm('Finish early and save the final scores?'))return;completeGame(totalsNow());render();celebrate()}
+function newGame(){if(!confirm('Start a new game? Current round history will be cleared, but Past Games are kept.'))return;
+const keep=confirm('Keep the same players for the new game?\n\nOK = keep players\nCancel = clear players too');state.rounds=[];state.gameFinished=false;state.winners=[];if(!keep)state.players=[];draft={};persist();render()}
 function exportScores(){let rows=[['Round',...state.players.map(p=>p.name)]];state.rounds.forEach((r,i)=>rows.push([i+1,...state.players.map(p=>score(r[p.id].d,r[p.id].b))]));rows.push(['TOTAL',...state.players.map(p=>state.rounds.reduce((sum,r)=>sum+score(r[p.id].d,r[p.id].b),0))]);const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='dutch-blitz-scores.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 const palette=[["#e4f1ff","#245b93"],["#ffe8ef","#a33e60"],["#e6f5e4","#347640"],["#f0e8ff","#7553a4"],["#fff0d9","#98601d"],["#dff5f3","#166e72"],["#fce8dc","#a65329"],["#edf0f8","#515d91"]];
 function tint(id){const n=state.players.findIndex(p=>p.id===id),c=palette[(n<0?0:n)%palette.length];return `style="--player-bg:${c[0]};--player-fg:${c[1]}"`}
 function render(){
-document.getElementById('winnerBanner').hidden=!state.finished;
-if(state.finished){const top=totalsNow(),best=top[0]?.total;document.getElementById('winnerBanner').textContent='🏆 '+top.filter(x=>x.total===best).map(x=>x.name).join(' & ')+(top.filter(x=>x.total===best).length>1?' tie for the win!':' wins!')}
-document.getElementById('finishBtn').disabled=state.rounds.length===0||state.finished;
+const banner=document.getElementById('winnerBanner');banner.hidden=!state.gameFinished;if(state.gameFinished)banner.textContent='🏆 '+state.winners.join(' & ')+(state.winners.length>1?' tie for the win!':' wins!');document.getElementById('finishBtn').disabled=state.rounds.length===0||state.gameFinished;document.getElementById('finishBtn').textContent='🏆 Finish early & celebrate';document.getElementById('editBtn').disabled=state.gameFinished;
 document.getElementById('players').innerHTML=state.players.map(p=>`<span class="chip player-tint" ${tint(p.id)}>${escapeHtml(p.name)} ${!state.rounds.length?`<button aria-label="Remove ${escapeHtml(p.name)}" onclick="removePlayer('${p.id}')">×</button>`:''}</span>`).join('')||'<span class="muted">No players yet. Add your first player above.</span>';
-document.getElementById('roundTitle').textContent=`Round ${state.rounds.length+1}`;
+document.getElementById('roundTitle').textContent=state.gameFinished?'Game finished · Final scores saved':`Round ${state.rounds.length+1}`;
 document.getElementById('entries').innerHTML=state.players.map(p=>`<div class="entry player-tint" ${tint(p.id)} data-id="${p.id}"><div class="entry-head"><span>${escapeHtml(p.name)}</span><span class="points">Enter both numbers</span></div><div class="fields"><label>Dutch cards played<input class="d" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.d??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','d',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label><label>Blitz cards left<input class="b" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.b??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','b',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label></div></div>`).join('')||'<p class="muted">Add players to begin.</p>';
-state.players.forEach(p=>updatePreview(p.id));document.getElementById('saveBtn').disabled=state.players.length<2||state.finished;
+state.players.forEach(p=>updatePreview(p.id));document.getElementById('saveBtn').disabled=state.players.length<2||state.gameFinished;
 const totals=totalsNow();
 document.getElementById('leaderboard').innerHTML=totals.length?`<table><thead><tr><th>Place</th><th>Player</th><th>Total points</th></tr></thead><tbody>${totals.map((p,i)=>`<tr><td class="rank">${i+1}${i===0&&state.rounds.length?' 👑':''}</td><td class="player-tint leader-name" ${tint(p.id)}>${escapeHtml(p.name)}</td><td class="player-tint leader-score" ${tint(p.id)}><strong>${p.total}</strong></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Scores will appear here.</p>';
 document.getElementById('pastGames').innerHTML=state.pastGames.length?state.pastGames.map((g,i)=>`<details class="past-game"><summary><strong>${escapeHtml(g.winners.join(' & '))} 🏆</strong> · ${new Date(g.date).toLocaleDateString()} <span class="muted">(${g.scores.length} players)</span></summary><table><tbody>${g.scores.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td class="past-score">${x.total}</td></tr>`).join('')}</tbody></table></details>`).join(''):'<p class="muted">Finished games will appear here with their final scores.</p>';
