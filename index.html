@@ -35,6 +35,11 @@ input,button,select{touch-action:manipulation} input{font-size:18px}
 .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;position:sticky;top:0;z-index:50;background:#f3f7f5;padding:8px 0}
 .tabs button{font-size:clamp(11px,2.4vw,16px);padding:10px 3px;min-height:49px;background:#dce9e7;color:#15575a}
 .tabs button[aria-selected="true"]{background:#136d73;color:white}
+.game-status{border:2px solid #d3b95c;background:#fff8d8;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center}
+.game-status[hidden]{display:none}
+.game-status strong{display:block;font-size:23px;margin-bottom:9px}
+.game-status button{font-size:19px;min-height:52px}
+.swipe-hint{text-align:center;font-size:13px;color:#63747a;margin:9px 0 0}
 .view[hidden]{display:none!important}
 .color-choice{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#52646a}
 .color-choice select{font-size:16px;border:1px solid #b8c9c6;border-radius:8px;background:white;padding:7px;max-width:132px}
@@ -66,10 +71,12 @@ small{color:#63747a}.footer{text-align:center;margin-top:22px}
 </style></head><body>
 <div id="confetti" aria-hidden="true"></div><h1>🃏 Dutch Blitz</h1><p class="sub">Your easy scorekeeper • 2 players or a whole table!</p>
 <nav class="tabs" aria-label="App pages"><button type="button" data-tab="scoring" aria-selected="true" onclick="showTab('scoring')">Scoring</button><button type="button" data-tab="leaderboard" aria-selected="false" onclick="showTab('leaderboard')">Leaderboard</button><button type="button" data-tab="past" aria-selected="false" onclick="showTab('past')">Past Games</button><button type="button" data-tab="rounds" aria-selected="false" onclick="showTab('rounds')">Rounds</button></nav>
+<p class="swipe-hint">Swipe left or right to switch pages, or tap a tab.</p>
 <main>
 <div class="view" id="view-scoring"><section class="card"><h2>Players & colours</h2><div class="row"><input id="addName" placeholder="Player name" maxlength="28" aria-label="Player name"><button onclick="addPlayer()">+ Add player</button></div><div id="players" class="players"></div><p class="muted">Choose a colour for each player. You can change it at any time.</p></section>
+<div class="game-status" id="scoringGameStatus" hidden><strong>🏆 Game Finished!</strong><p>The winner and final scores are saved in Past Games.</p><button type="button" onclick="newGame()">Start New Game</button></div>
 <section class="card"><h2 id="roundTitle">Round 1</h2><p class="muted">Enter Dutch pile cards (+1 each) and Blitz pile cards left (−2 each).</p><div id="entries"></div><div class="actions"><button id="saveBtn" onclick="saveRound()">Save round & update scores</button></div></section></div>
-<div class="view" id="view-leaderboard" hidden><section class="card"><h2>🏆 Leaderboard</h2><div id="winnerBanner" class="winner-banner" hidden></div><div id="leaderboard"></div><div class="actions"><button id="finishBtn" onclick="finishGame()">🏆 Finish early & celebrate</button><button class="secondary" onclick="newGame()">New game</button></div></section></div>
+<div class="view" id="view-leaderboard" hidden><section class="card"><h2>🏆 Leaderboard</h2><div id="winnerBanner" class="winner-banner" hidden></div><div class="game-status" id="leaderGameStatus" hidden><strong>Game Finished</strong><button type="button" onclick="newGame()">Start New Game</button></div><div id="leaderboard"></div><div class="actions"><button id="finishBtn" onclick="finishGame()">🏆 Finish early & celebrate</button><button class="secondary" onclick="newGame()">New game</button></div></section></div>
 <div class="view" id="view-past" hidden><section class="card"><h2>Past Games</h2><p class="muted">Finished games are saved on this device. Tap a game to see final scores or delete that game.</p><div id="pastGames"></div></section></div>
 <div class="view" id="view-rounds" hidden><section class="card"><h2>Round History</h2><div class="history" id="history"></div><div class="actions"><button class="secondary" onclick="editLast()" id="editBtn">↶ Edit last round</button><button class="secondary" onclick="exportScores()">Export scores</button><button class="danger" onclick="newGame()">New game</button></div></section></div>
 </main>
@@ -80,6 +87,25 @@ let state={players:[],rounds:[],pastGames:[]},draft={},activeTab="scoring";
 try{let s=localStorage.getItem(KEY);if(s)state=JSON.parse(s)}catch(e){}
 state.pastGames=Array.isArray(state.pastGames)?state.pastGames:[];state.gameFinished=Boolean(state.gameFinished);state.winners=Array.isArray(state.winners)?state.winners:[];
 function showTab(tab){activeTab=tab;document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!=='view-'+tab);document.querySelectorAll('[data-tab]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.tab===tab)));window.scrollTo({top:0,behavior:'instant'});}
+// Swipe between pages on touch screens, but preserve vertical scrolling and native controls.
+const pageOrder=['scoring','leaderboard','past','rounds'];
+let swipeStart=null;
+document.addEventListener('touchstart',function(e){
+ if(e.touches.length!==1){swipeStart=null;return;}
+ const target=e.target;
+ if(target.closest('button,input,select,textarea,summary,a,[contenteditable="true"],.history')){swipeStart=null;return;}
+ const t=e.touches[0];swipeStart={x:t.clientX,y:t.clientY,time:Date.now()};
+},{passive:true});
+document.addEventListener('touchend',function(e){
+ if(!swipeStart||e.changedTouches.length!==1)return;
+ const t=e.changedTouches[0],dx=t.clientX-swipeStart.x,dy=t.clientY-swipeStart.y;
+ const horizontal=Math.abs(dx)>75&&Math.abs(dx)>Math.abs(dy)*1.6&&Date.now()-swipeStart.time<1000;
+ swipeStart=null;
+ if(!horizontal)return;
+ const i=pageOrder.indexOf(activeTab),next=i+(dx<0?1:-1);
+ if(next>=0&&next<pageOrder.length)showTab(pageOrder[next]);
+},{passive:true});
+document.addEventListener('touchcancel',()=>{swipeStart=null},{passive:true});
 function deletePastGame(index){const g=state.pastGames[index];if(!g)return;const names=Array.isArray(g.winners)?g.winners.join(' & '):'Unknown';if(!confirm('Delete the saved game won by '+names+' on '+new Date(g.date).toLocaleDateString()+'? This cannot be undone.'))return;state.pastGames.splice(index,1);persist();render()}
 function changeColor(id,color){const p=state.players.find(p=>p.id===id);if(!p)return;p.color=color;persist();render()}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
@@ -107,7 +133,7 @@ function exportScores(){let rows=[['Round',...state.players.map(p=>p.name)]];sta
 const palette=[["#e4f1ff","#245b93"],["#ffe8ef","#a33e60"],["#e6f5e4","#347640"],["#f0e8ff","#7553a4"],["#fff0d9","#98601d"],["#dff5f3","#166e72"],["#fce8dc","#a65329"],["#edf0f8","#515d91"]];
 function tint(id){const n=state.players.findIndex(p=>p.id===id),p=state.players[n],index=p&&Number.isInteger(Number(p.color))&&p.color!==undefined?Number(p.color):(n<0?0:n),c=palette[((index%palette.length)+palette.length)%palette.length];return `style="--player-bg:${c[0]};--player-fg:${c[1]}"`}
 function render(){
-const banner=document.getElementById('winnerBanner');banner.hidden=!state.gameFinished;if(state.gameFinished)banner.innerHTML='🏆 <span class="winner-name">'+state.winners.map(escapeHtml).join(' &amp; ')+(state.winners.length>1?' tie for the win!':' wins!')+'</span> 🏆';document.getElementById('finishBtn').disabled=state.rounds.length===0||state.gameFinished;document.getElementById('finishBtn').textContent='🏆 Finish early & celebrate';document.getElementById('editBtn').disabled=state.gameFinished;
+document.getElementById('scoringGameStatus').hidden=!state.gameFinished;document.getElementById('leaderGameStatus').hidden=!state.gameFinished;const banner=document.getElementById('winnerBanner');banner.hidden=!state.gameFinished;if(state.gameFinished)banner.innerHTML='🏆 <span class="winner-name">'+state.winners.map(escapeHtml).join(' &amp; ')+(state.winners.length>1?' tie for the win!':' wins!')+'</span> 🏆';document.getElementById('finishBtn').disabled=state.rounds.length===0||state.gameFinished;document.getElementById('finishBtn').textContent='🏆 Finish early & celebrate';document.getElementById('editBtn').disabled=state.gameFinished;
 document.getElementById('players').innerHTML=state.players.map((p,i)=>`<span class="player-chip-wrap"><span class="chip player-tint" ${tint(p.id)}>${escapeHtml(p.name)} ${!state.rounds.length?`<button aria-label="Remove ${escapeHtml(p.name)}" onclick="removePlayer('${p.id}')">×</button>`:''}</span><label class="color-choice">Colour <select aria-label="Colour for ${escapeHtml(p.name)}" onchange="changeColor('${p.id}',this.value)">${['Blue','Pink','Green','Purple','Gold','Teal','Peach','Slate'].map((name,j)=>`<option value="${j}" ${Number(p.color??i)===j?'selected':''}>${name}</option>`).join('')}</select></label></span>`).join('')||'<span class="muted">No players yet. Add your first player above.</span>';
 document.getElementById('roundTitle').textContent=state.gameFinished?'Game finished · Final scores saved':`Round ${state.rounds.length+1}`;
 document.getElementById('entries').innerHTML=state.players.map(p=>`<div class="entry player-tint" ${tint(p.id)} data-id="${p.id}"><div class="entry-head"><span>${escapeHtml(p.name)}</span><span class="points">Enter both numbers</span></div><div class="fields"><label>Dutch cards played<input class="d" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.d??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','d',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label><label>Blitz cards left<input class="b" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.b??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','b',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label></div></div>`).join('')||'<p class="muted">Add players to begin.</p>';
