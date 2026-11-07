@@ -27,13 +27,13 @@ table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:12px 8px
 #leaderboard td.player-tint{border-radius:8px}
 @media(max-width:430px){.history th,.history td{min-width:72px;padding:10px 9px}}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}.actions button{flex:1}
-.steppers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:7px}
+.steppers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin-top:7px}
 button.step{padding:9px 2px;min-height:43px;font-size:16px;background:#fff;color:#135c60;border:1px solid #a8c5c5}
 button.step:active{background:#d6e9e8}
 button.step{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;min-height:51px;font-size:18px;}
 input,button,select{touch-action:manipulation} input{font-size:18px}
-.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;position:sticky;top:0;z-index:50;background:#f3f7f5;padding:8px 0}
-.tabs button{font-size:clamp(11px,2.4vw,16px);padding:10px 3px;min-height:49px;background:#dce9e7;color:#15575a}
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;position:sticky;top:0;z-index:50;background:#f3f7f5;padding:8px 0}
+.tabs button{font-size:clamp(10px,2.1vw,15px);padding:10px 2px;min-height:49px;background:#dce9e7;color:#15575a}
 .tabs button[aria-selected="true"]{background:#136d73;color:white}
 .game-status{border:2px solid #d3b95c;background:#fff8d8;border-radius:14px;padding:16px;margin-bottom:14px;text-align:center}
 .game-status[hidden]{display:none}
@@ -69,8 +69,8 @@ input,button,select{touch-action:manipulation} input{font-size:18px}
 small{color:#63747a}.footer{text-align:center;margin-top:22px}
 @media(max-width:430px){.card{padding:14px}.fields{gap:7px}th,td{padding:9px 5px}}
 
-/* High-contrast round caller and winner spotlight */
-.history td.blitz-caller{background:#185a65!important;color:#fff!important;font-weight:900!important;border:3px solid #efb93f!important;box-shadow:0 1px 5px #123a4560;font-size:1.2em}
+/* Blitz caller highlight matches the primary action button */
+.history td.blitz-caller{background:#136d73!important;color:#fff!important;font-weight:900!important;border:3px solid #efb93f!important;box-shadow:0 1px 5px #136d7333;font-size:1.2em}
 .history td.blitz-caller strong{color:#fff!important}
 .past-round-history{margin:8px 0 3px}
 .past-game h3{font-size:17px;margin:15px 0 7px}
@@ -80,15 +80,16 @@ small{color:#63747a}.footer{text-align:center;margin-top:22px}
 @media(prefers-reduced-motion:reduce){.winner-banner .winner-name{animation:none!important}}
 </style></head><body>
 <div id="confetti" aria-hidden="true"></div><h1>🃏 Dutch Blitz</h1><p class="sub">Your easy scorekeeper • 2 players or a whole table!</p>
-<nav class="tabs" aria-label="App pages"><button type="button" data-tab="scoring" aria-selected="true" onclick="showTab('scoring')">Scoring</button><button type="button" data-tab="leaderboard" aria-selected="false" onclick="showTab('leaderboard')">Leaderboard</button><button type="button" data-tab="past" aria-selected="false" onclick="showTab('past')">Past Games</button><button type="button" data-tab="rounds" aria-selected="false" onclick="showTab('rounds')">Rounds</button></nav>
+<nav class="tabs" aria-label="App pages"><button type="button" data-tab="scoring" aria-selected="true" onclick="showTab('scoring')">Scoring</button><button type="button" data-tab="leaderboard" aria-selected="false" onclick="showTab('leaderboard')">Leaderboard</button><button type="button" data-tab="past" aria-selected="false" onclick="showTab('past')">Past Games</button><button type="button" data-tab="rounds" aria-selected="false" onclick="showTab('rounds')">Rounds</button><button type="button" data-tab="players" aria-selected="false" onclick="showTab('players')">Players & Colours</button></nav>
 <p class="swipe-hint">Swipe left or right to switch pages, or tap a tab.</p>
 <main>
-<div class="view" id="view-scoring"><section class="card"><h2>Players & colours</h2><div class="row"><input id="addName" placeholder="Player name" maxlength="28" aria-label="Player name"><button onclick="addPlayer()">+ Add player</button></div><div id="players" class="players"></div><p class="muted">Choose a colour for each player. You can change it at any time.</p></section>
+<div class="view" id="view-scoring">
 <div class="game-status" id="scoringGameStatus" hidden><strong>🏆 Game Finished!</strong><p>The winner and final scores are saved in Past Games.</p><button type="button" onclick="newGame()">Start New Game</button></div>
 <section class="card"><h2 id="roundTitle">Round 1</h2><p class="muted">Enter Dutch pile cards (+1 each) and Blitz pile cards left (−2 each).</p><div id="entries"></div><div class="actions"><button id="saveBtn" onclick="saveRound()">Save round & update scores</button></div></section></div>
 <div class="view" id="view-leaderboard" hidden><section class="card"><h2>🏆 Leaderboard</h2><div id="winnerBanner" class="winner-banner" hidden></div><div class="game-status" id="leaderGameStatus" hidden><strong>Game Finished</strong><button type="button" onclick="newGame()">Start New Game</button></div><div id="leaderboard"></div><div class="actions"><button id="finishBtn" onclick="finishGame()">🏆 Finish early & celebrate</button><button class="secondary" onclick="newGame()">New game</button></div></section></div>
 <div class="view" id="view-past" hidden><section class="card"><h2>Past Games</h2><p class="muted">Finished games are saved on this device. Tap a game to see final scores or delete that game.</p><div id="pastGames"></div></section></div>
 <div class="view" id="view-rounds" hidden><section class="card"><h2>Round History</h2><div class="history" id="history"></div><div class="actions"><button class="secondary" onclick="editLast()" id="editBtn">↶ Edit last round</button><button class="secondary" onclick="exportScores()">Export scores</button><button class="danger" onclick="newGame()">New game</button></div></section></div>
+<div class="view" id="view-players" hidden><section class="card"><h2>Players & colours</h2><div class="row"><input id="addName" placeholder="Player name" maxlength="28" aria-label="Player name"><button onclick="addPlayer()">+ Add player</button></div><div id="players" class="players"></div><p class="muted">Choose a colour for each player. You can change it at any time.</p><button class="secondary" type="button" onclick="showTab('scoring')">Go to Scoring →</button></section></div>
 </main>
 <p class="footer"><small>Scoring: Dutch cards − (2 × Blitz cards left). Scores can be negative.</small></p>
 <script>
@@ -98,7 +99,7 @@ try{let s=localStorage.getItem(KEY);if(s)state=JSON.parse(s)}catch(e){}
 state.pastGames=Array.isArray(state.pastGames)?state.pastGames:[];state.gameFinished=Boolean(state.gameFinished);state.winners=Array.isArray(state.winners)?state.winners:[];
 function showTab(tab){activeTab=tab;document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!=='view-'+tab);document.querySelectorAll('[data-tab]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.tab===tab)));window.scrollTo({top:0,behavior:'instant'});}
 // Swipe between pages on touch screens, but preserve vertical scrolling and native controls.
-const pageOrder=['scoring','leaderboard','past','rounds'];
+const pageOrder=['scoring','leaderboard','past','rounds','players'];
 let swipeStart=null;
 document.addEventListener('touchstart',function(e){
  if(e.touches.length!==1){swipeStart=null;return;}
@@ -138,7 +139,7 @@ function celebrate(){const reduced=window.matchMedia && window.matchMedia('(pref
 function completeGame(totals){if(state.gameFinished)return;const best=totals[0].total,winners=totals.filter(x=>x.total===best).map(x=>x.name);state.pastGames.unshift({date:new Date().toISOString(),scores:totals.map(({name,total})=>({name,total})),winners,players:state.players.map(p=>({id:p.id,name:p.name,color:p.color})),rounds:state.rounds.map(r=>Object.fromEntries(state.players.map(p=>[p.id,{d:r[p.id].d,b:r[p.id].b}])))});state.gameFinished=true;state.winners=winners;persist()}
 function finishGame(){if(state.gameFinished)return alert('This game has already been saved.');if(!state.rounds.length)return alert('Save at least one round first.');if(!confirm('Finish early and save the final scores?'))return;completeGame(totalsNow());render();showTab('leaderboard');celebrate()}
 function newGame(){if(!confirm('Start a new game? Current round history will be cleared, but Past Games are kept.'))return;
-const keep=confirm('Keep the same players for the new game?\n\nOK = keep players\nCancel = clear players too');state.rounds=[];state.gameFinished=false;state.winners=[];if(!keep)state.players=[];draft={};persist();render();showTab('scoring')}
+const keep=confirm('Keep the same players for the new game?\n\nOK = keep players\nCancel = clear players too');state.rounds=[];state.gameFinished=false;state.winners=[];if(!keep)state.players=[];draft={};persist();render();showTab(state.players.length?'scoring':'players')}
 function exportScores(){let rows=[['Round',...state.players.map(p=>p.name)]];state.rounds.forEach((r,i)=>rows.push([i+1,...state.players.map(p=>score(r[p.id].d,r[p.id].b))]));rows.push(['TOTAL',...state.players.map(p=>state.rounds.reduce((sum,r)=>sum+score(r[p.id].d,r[p.id].b),0))]);const csv=rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='dutch-blitz-scores.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 const palette=[["#e4f1ff","#245b93"],["#ffe8ef","#a33e60"],["#e6f5e4","#347640"],["#f0e8ff","#7553a4"],["#fff0d9","#98601d"],["#dff5f3","#166e72"],["#fce8dc","#a65329"],["#edf0f8","#515d91"]];
 function tint(id){const n=state.players.findIndex(p=>p.id===id),p=state.players[n],index=p&&Number.isInteger(Number(p.color))&&p.color!==undefined?Number(p.color):(n<0?0:n),c=palette[((index%palette.length)+palette.length)%palette.length];return `style="--player-bg:${c[0]};--player-fg:${c[1]}"`}
@@ -148,12 +149,12 @@ function render(){
 document.getElementById('scoringGameStatus').hidden=!state.gameFinished;document.getElementById('leaderGameStatus').hidden=!state.gameFinished;const banner=document.getElementById('winnerBanner');banner.hidden=!state.gameFinished;if(state.gameFinished)banner.innerHTML='🏆 <span class="winner-name">'+state.winners.map(escapeHtml).join(' &amp; ')+(state.winners.length>1?' tie for the win!':' wins!')+'</span> 🏆';document.getElementById('finishBtn').disabled=state.rounds.length===0||state.gameFinished;document.getElementById('finishBtn').textContent='🏆 Finish early & celebrate';document.getElementById('editBtn').disabled=state.gameFinished;
 document.getElementById('players').innerHTML=state.players.map((p,i)=>`<span class="player-chip-wrap"><span class="chip player-tint" ${tint(p.id)}>${escapeHtml(p.name)} ${!state.rounds.length?`<button aria-label="Remove ${escapeHtml(p.name)}" onclick="removePlayer('${p.id}')">×</button>`:''}</span><label class="color-choice">Colour <select aria-label="Colour for ${escapeHtml(p.name)}" onchange="changeColor('${p.id}',this.value)">${['Blue','Pink','Green','Purple','Gold','Teal','Peach','Slate'].map((name,j)=>`<option value="${j}" ${Number(p.color??i)===j?'selected':''}>${name}</option>`).join('')}</select></label></span>`).join('')||'<span class="muted">No players yet. Add your first player above.</span>';
 document.getElementById('roundTitle').textContent=state.gameFinished?'Game finished · Final scores saved':`Round ${state.rounds.length+1}`;
-document.getElementById('entries').innerHTML=state.players.map(p=>`<div class="entry player-tint" ${tint(p.id)} data-id="${p.id}"><div class="entry-head"><span>${escapeHtml(p.name)}</span><span class="points">Enter both numbers</span></div><div class="fields"><label>Dutch cards played<input class="d" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.d??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','d',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label><label>Blitz cards left<input class="b" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.b??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','b',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label></div></div>`).join('')||'<p class="muted">Add players to begin.</p>';
+document.getElementById('entries').innerHTML=state.players.map(p=>`<div class="entry player-tint" ${tint(p.id)} data-id="${p.id}"><div class="entry-head"><span>${escapeHtml(p.name)}</span><span class="points">Enter both numbers</span></div><div class="fields"><label>Dutch cards played<input class="d" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.d??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','d',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label><label>Blitz cards left<input class="b" type="number" inputmode="numeric" min="0" step="1" value="${draft[p.id]?.b??0}" oninput="updatePreview('${p.id}')"><span class="steppers">${[-5,-1,1,5].map(n=>`<button type="button" class="step" onclick="changeCount('${p.id}','b',${n})">${n>0?'+':''}${n}</button>`).join('')}</span></label></div></div>`).join('')||'<p class="muted">No players yet. Open Players & Colours to add them.</p><button class="secondary" type="button" onclick="showTab(\'players\')">Set up players</button>';
 state.players.forEach(p=>updatePreview(p.id));document.getElementById('saveBtn').disabled=state.players.length<2||state.gameFinished;
 const totals=totalsNow();
 document.getElementById('leaderboard').innerHTML=totals.length?`<table><thead><tr><th>Place</th><th>Player</th><th>Total points</th></tr></thead><tbody>${totals.map((p,i)=>`<tr class="${state.gameFinished&&state.winners.includes(p.name)?'winner-row':''}"><td class="rank">${i+1}${i===0&&state.rounds.length?' 👑':''}</td><td class="player-tint leader-name" ${tint(p.id)}>${escapeHtml(p.name)}</td><td class="player-tint leader-score" ${tint(p.id)}><strong>${p.total}</strong></td></tr>`).join('')}</tbody></table>`:'<p class="muted">Scores will appear here.</p>';
 document.getElementById('pastGames').innerHTML=state.pastGames.length?state.pastGames.map((g,i)=>`<details class="past-game"><summary><strong>${escapeHtml(g.winners.join(' & '))} 🏆</strong> · ${new Date(g.date).toLocaleDateString()} <span class="muted">(${g.scores.length} players)</span></summary><table><tbody>${g.scores.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td class="past-score">${x.total}</td></tr>`).join('')}</tbody></table><h3>Rounds</h3>${savedRounds(g)}<div class="past-actions"><button class="danger" onclick="deletePastGame(${i})">🗑 Delete this game</button></div></details>`).join(''):'<p class="muted">Finished games will appear here with their final scores.</p>';
 document.getElementById('history').innerHTML=state.rounds.length?`<table><thead><tr><th>Round</th>${state.players.map(p=>`<th class="player-tint" ${tint(p.id)}>${escapeHtml(p.name)}</th>`).join('')}</tr></thead><tbody>${state.rounds.map((r,i)=>`<tr><td>${i+1}</td>${roundCells(r,state.players,true)}</tr>`).join('')}</tbody></table>`:'<p class="muted">No rounds saved yet.</p>';
 }
-render();showTab('scoring');
+render();showTab(state.players.length?'scoring':'players');
 </script></body></html>
